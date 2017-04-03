@@ -1,0 +1,31 @@
+---
+- name: Docker Ansible
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  vars:
+    latest_docker_id: " {{lookup('pipe', 'docker images -q script-test')}}"
+  tasks:
+   - name: create a directory if it doesn't exist
+     file: path=upload state=directory mode=0755
+   - name: Building docker
+     command: docker build -t script-test .
+
+
+   - name: print to stdout
+     command: docker run -t script-test:latest
+     register: docker_run
+
+   - debug: msg="{{ docker_run.stdout_lines}}"
+
+   - name: Saving docker
+     command: docker save -o upload/dock.tar {{ latest_docker_id }}
+   - name: Uploading Docker
+     s3:
+       bucket: test2.snukala.in
+       aws_access_key:
+       aws_secret_key:
+       src: upload/dock.tar
+       object: dock.tar
+       mode: put
+...
